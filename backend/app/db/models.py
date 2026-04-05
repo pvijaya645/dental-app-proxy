@@ -77,7 +77,6 @@ class StaffRow(BaseModel):
 # ── KNOWLEDGE BASE ────────────────────────────────────────────
 
 class KBEntryCreate(BaseModel):
-    business_id: UUID
     title: str
     content: str
     category: str = "general"

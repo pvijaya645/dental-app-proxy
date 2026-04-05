@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bright Smile Dental — Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f9ff; color: #1e293b; }
+
+    header {
+      background: white; border-bottom: 1px solid #e2e8f0;
+      padding: 16px 32px; display: flex; align-items: center; gap: 12px;
+    }
+    header .logo { font-size: 28px; }
+    header h1 { font-size: 22px; font-weight: 700; color: #1e40af; }
+    header p { font-size: 13px; color: #64748b; }
+
+    .hero {
+      background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+      color: white; text-align: center; padding: 80px 32px;
+    }
+    .hero h2 { font-size: 36px; font-weight: 800; margin-bottom: 12px; }
+    .hero p { font-size: 18px; opacity: 0.9; max-width: 480px; margin: 0 auto 28px; }
+    .hero .btn {
+      background: white; color: #1e40af; padding: 14px 32px;
+      border-radius: 32px; font-weight: 700; font-size: 16px;
+      text-decoration: none; display: inline-block;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .services {
+      max-width: 900px; margin: 60px auto; padding: 0 32px;
+    }
+    .services h3 { font-size: 24px; font-weight: 700; margin-bottom: 24px; text-align: center; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .card {
+      background: white; border-radius: 12px; padding: 24px;
+      text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .card .icon { font-size: 32px; margin-bottom: 10px; }
+    .card h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .card p { font-size: 13px; color: #64748b; }
+
+    .hint {
+      text-align: center; padding: 24px; color: #64748b; font-size: 14px;
+    }
+    .hint strong { color: #2563eb; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🦷</div>
+    <div>
+      <h1>Bright Smile Dental</h1>
+      <p>Your trusted dental care partner</p>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h2>Exceptional Dental Care</h2>
+    <p>We provide comprehensive dental services for the whole family in a comfortable, modern environment.</p>
+    <a href="#" class="btn">Book an Appointment</a>
+  </div>
+
+  <div class="services">
+    <h3>Our Services</h3>
+    <div class="cards">
+      <div class="card"><div class="icon">🪥</div><h4>General Dentistry</h4><p>Cleanings, fillings, and checkups</p></div>
+      <div class="card"><div class="icon">✨</div><h4>Teeth Whitening</h4><p>Professional in-office whitening</p></div>
+      <div class="card"><div class="icon">🦷</div><h4>Implants</h4><p>Permanent tooth replacement</p></div>
+      <div class="card"><div class="icon">😁</div><h4>Invisalign</h4><p>Clear aligner orthodontics</p></div>
+    </div>
+  </div>
+
+  <div class="hint">
+    👉 Try the chat widget in the <strong>bottom right corner</strong> — ask about hours, insurance, or appointments!
+  </div>
+
+  <!-- ✅ Ravira Widget — paste this on any dental website -->
+  <script
+    src="/widget.js"
+    data-key="11e3d94f-798e-40db-b9bf-833f1f464ff3"
+    data-api="http://localhost:8000"
+    data-name="Bright Smile Dental"
+    data-color="#2563eb">
+  </script>
+
+</body>
+</html>

@@ -26,7 +26,9 @@ class Settings(BaseSettings):
     # ── Twilio (Growth + Pro — not needed in Sprint 1) ─────────
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
+    twilio_from_number: str = ""          # your Twilio phone number e.g. +15551234567
     twilio_messaging_service_sid: str = ""
+    staff_alert_phone: str = ""           # dentist/staff phone to receive SMS alerts
 
     # ── Vapi (Pro only) ────────────────────────────────────────
     vapi_api_key: str = ""

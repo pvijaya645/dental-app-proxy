@@ -63,26 +63,24 @@ def scrape_website(url: str) -> str:
     """
     fc = get_firecrawl()
 
-    result = fc.crawl_url(
+    result = fc.crawl(
         url,
-        params={
-            "limit": 10,                        # max pages to crawl
-            "scrapeOptions": {
-                "formats": ["markdown"],
-                "excludeTags": ["nav", "footer", "script", "style", "head"],
-                "onlyMainContent": True,        # strips headers/footers/navbars
-            },
+        limit=10,
+        scrape_options={
+            "formats": ["markdown"],
+            "excludeTags": ["nav", "footer", "script", "style", "head"],
+            "onlyMainContent": True,
         },
-        poll_interval=3,
     )
 
     # Combine all pages into one document
     pages = result.data if hasattr(result, "data") else []
     combined = []
     for page in pages:
-        md = page.markdown if hasattr(page, "markdown") else ""
-        url_str = page.metadata.get("url", "") if hasattr(page, "metadata") else ""
-        if md and md.strip():
+        md = getattr(page, "markdown", "") or ""
+        meta = getattr(page, "metadata", {}) or {}
+        url_str = meta.get("url", "") if isinstance(meta, dict) else ""
+        if md.strip():
             combined.append(f"## Page: {url_str}\n\n{md}")
 
     return "\n\n---\n\n".join(combined)
