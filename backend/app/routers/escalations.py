@@ -26,7 +26,7 @@ def list_escalations(
     db = get_supabase()
     query = (
         db.table("staff_escalations")
-        .select("*, conversations(session_id, channel, customer_name)")
+        .select("*, conversations(session_id, channel)")
         .eq("business_id", current_business["id"])
         .order("created_at", desc=True)
     )

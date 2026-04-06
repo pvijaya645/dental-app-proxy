@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
+import { MessageSquare, User } from "lucide-react";
 import API from "../api/client";
+
+const STATUS_BADGE = {
+  active:    "bg-green-100 text-green-700",
+  resolved:  "bg-slate-100 text-slate-600",
+  escalated: "bg-red-100 text-red-600",
+};
 
 export default function Conversations() {
   const [conversations, setConversations] = useState([]);
@@ -9,7 +16,7 @@ export default function Conversations() {
 
   useEffect(() => {
     API.get("/api/chat/conversations")
-      .then(r => setConversations(r.data))
+      .then((r) => setConversations(r.data))
       .finally(() => setLoading(false));
   }, []);
 
@@ -20,86 +27,99 @@ export default function Conversations() {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
+    <div className="flex h-screen">
       {/* Conversation list */}
-      <div style={{
-        width: 320, background: "white", borderRight: "1px solid #e2e8f0",
-        overflow: "auto",
-      }}>
-        <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #f1f5f9" }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Conversations</h2>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{conversations.length} total</div>
+      <div className="w-80 bg-white border-r border-slate-100 flex flex-col flex-shrink-0 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
+          <h2 className="text-base font-bold text-slate-900">Conversations</h2>
+          <p className="text-xs text-slate-400 mt-0.5">{conversations.length} total</p>
         </div>
 
-        {loading && <div style={{ padding: 20, color: "#94a3b8", fontSize: 14 }}>Loading…</div>}
+        <div className="flex-1 overflow-y-auto">
+          {loading && (
+            <div className="px-5 py-4 text-sm text-slate-400">Loading…</div>
+          )}
 
-        {conversations.map(c => (
-          <div key={c.id} onClick={() => selectConversation(c)} style={{
-            padding: "14px 20px", borderBottom: "1px solid #f8fafc", cursor: "pointer",
-            background: selected?.id === c.id ? "#eff6ff" : "white",
-            borderLeft: selected?.id === c.id ? "3px solid #2563eb" : "3px solid transparent",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>
-                {c.customer_name || "Anonymous Patient"}
+          {conversations.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => selectConversation(c)}
+              className={`w-full text-left px-5 py-4 border-b border-slate-50 border-l-2 transition-colors cursor-pointer ${
+                selected?.id === c.id
+                  ? "bg-blue-50 border-l-blue-600"
+                  : "bg-white border-l-transparent hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <span className="text-sm font-semibold text-slate-900 truncate">
+                  {c.customer_name || "Anonymous Patient"}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex-shrink-0 ${STATUS_BADGE[c.status] || STATUS_BADGE.resolved}`}
+                >
+                  {c.status}
+                </span>
               </div>
-              <span style={{
-                padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600,
-                background: c.status === "active" ? "#dcfce7" : c.status === "escalated" ? "#fef2f2" : "#f1f5f9",
-                color: c.status === "active" ? "#16a34a" : c.status === "escalated" ? "#dc2626" : "#64748b",
-              }}>{c.status}</span>
-            </div>
-            <div style={{ fontSize: 12, color: "#94a3b8" }}>
-              {c.channel} · {new Date(c.created_at).toLocaleDateString()}
-            </div>
-          </div>
-        ))}
+              <div className="text-xs text-slate-400">
+                {c.channel} · {new Date(c.created_at).toLocaleDateString()}
+              </div>
+            </button>
+          ))}
 
-        {!loading && conversations.length === 0 && (
-          <div style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
-            No conversations yet
-          </div>
-        )}
+          {!loading && conversations.length === 0 && (
+            <div className="px-5 py-10 text-center text-slate-400 text-sm">
+              No conversations yet
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Message thread */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f8fafc" }}>
+      <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
         {!selected ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
-              <div>Select a conversation to view messages</div>
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+              <MessageSquare className="w-6 h-6 text-slate-400" />
             </div>
+            <p className="text-sm">Select a conversation to view messages</p>
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div style={{ background: "white", padding: "16px 24px", borderBottom: "1px solid #e2e8f0" }}>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{selected.customer_name || "Anonymous Patient"}</div>
-              <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                Started {new Date(selected.created_at).toLocaleString()} · {selected.channel}
+            {/* Thread header */}
+            <div className="bg-white px-6 py-4 border-b border-slate-100 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                  <User className="w-4 h-4 text-blue-500" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-slate-900">
+                    {selected.customer_name || "Anonymous Patient"}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Started {new Date(selected.created_at).toLocaleString()} · {selected.channel}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflow: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-              {messages.map(m => (
-                <div key={m.id} style={{
-                  display: "flex",
-                  justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-                }}>
-                  <div style={{
-                    maxWidth: "70%", padding: "10px 14px", borderRadius: 12,
-                    background: m.role === "user" ? "#2563eb" : "white",
-                    color: m.role === "user" ? "white" : "#1e293b",
-                    fontSize: 14, lineHeight: 1.5,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                    borderBottomRightRadius: m.role === "user" ? 4 : 12,
-                    borderBottomLeftRadius: m.role === "assistant" ? 4 : 12,
-                  }}>
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-3">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                      m.role === "user"
+                        ? "bg-blue-600 text-white rounded-br-sm"
+                        : "bg-white text-slate-900 rounded-bl-sm"
+                    }`}
+                  >
                     {m.content}
-                    <div style={{ fontSize: 10, opacity: 0.6, marginTop: 4, textAlign: "right" }}>
-                      {m.intent && `${m.intent} · `}{new Date(m.created_at).toLocaleTimeString()}
+                    <div className={`text-xs mt-1 text-right opacity-60`}>
+                      {m.intent && `${m.intent} · `}
+                      {new Date(m.created_at).toLocaleTimeString()}
                     </div>
                   </div>
                 </div>

@@ -102,75 +102,75 @@ class KBEntryRow(BaseModel):
 
 
 # ── CONVERSATION ──────────────────────────────────────────────
+# PHI NOTICE: customer_name, customer_phone, customer_email have been removed.
+# Message content is never stored; session history lives in RAM only.
 
 class ConversationCreate(BaseModel):
     business_id: UUID
     session_id: str
     channel: str = "chat"
-    customer_name: Optional[str] = None
-    customer_phone: Optional[str] = None
-    customer_email: Optional[str] = None
+    # No PHI fields — patient identity is never stored
 
 
 class ConversationRow(BaseModel):
     id: UUID
     business_id: UUID
     session_id: str
-    customer_name: Optional[str]
-    customer_phone: Optional[str]
-    customer_email: Optional[str]
     channel: str
     status: str
+    message_count: Optional[int] = 0
+    last_intent: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
 
 # ── MESSAGE ───────────────────────────────────────────────────
+# PHI NOTICE: content field has been removed.
+# Only non-PHI metadata is stored: role, intent, char_count.
+# Message content lives in the in-memory session store only.
 
 class MessageCreate(BaseModel):
     conversation_id: UUID
-    role: str   # user | assistant | system
-    content: str
+    role: str           # user | assistant | system
     intent: Optional[str] = None
-    confidence: Optional[float] = None
+    char_count: Optional[int] = None   # character length only, never content
 
 
 class MessageRow(BaseModel):
     id: UUID
     conversation_id: UUID
     role: str
-    content: str
     intent: Optional[str]
-    confidence: Optional[float]
+    char_count: Optional[int]
     created_at: datetime
 
 
 # ── APPOINTMENT ───────────────────────────────────────────────
+# PHI NOTICE: patient_name, patient_phone, patient_email have been removed.
+# Use patient_ref to correlate with the dental office's own patient management system.
 
 class AppointmentCreate(BaseModel):
     business_id: UUID
     conversation_id: Optional[UUID] = None
-    patient_name: str
-    patient_phone: str
-    patient_email: Optional[EmailStr] = None
+    patient_ref: Optional[str] = None   # anonymized reference set by dental office
     appointment_date: date
     appointment_time: time
     service_type: str
     notes: Optional[str] = None
+    # No patient_name / patient_phone / patient_email
 
 
 class AppointmentRow(BaseModel):
     id: UUID
     business_id: UUID
     conversation_id: Optional[UUID]
-    patient_name: str
-    patient_phone: str
-    patient_email: Optional[str]
+    patient_ref: Optional[str]          # anonymized reference only
     appointment_date: date
     appointment_time: time
     service_type: str
     status: str
     notes: Optional[str]
+    staff_notified: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
 

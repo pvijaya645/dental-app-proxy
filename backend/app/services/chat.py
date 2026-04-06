@@ -1,13 +1,20 @@
 """
-AI Chat Engine — Sprint 3 core.
+AI Chat Engine — HIPAA-compliant update.
 
 Flow:
   1. Receive patient message + session_id + business context
-  2. Search KB for relevant entries (RAG)
-  3. Build Claude prompt with context + history
-  4. Get Claude's response
-  5. Save both messages to Supabase
-  6. Return response + intent
+  2. Load conversation history from in-memory session store (never DB)
+  3. Search KB for relevant entries (RAG)
+  4. Build Claude prompt with context + history
+  5. Get Claude's response
+  6. Store message content in session store (RAM only, never DB)
+  7. Save only non-PHI metadata (intent, char_count) to DB
+  8. Return response + intent
+
+PHI handling:
+  - Message content lives in _sessions dict (RAM) for the duration of the session
+  - Sessions expire after 2 hours of inactivity
+  - DB only receives: conversation_id, role, intent, char_count — never content
 """
 
 import uuid
@@ -17,6 +24,7 @@ from app.db.client import get_supabase
 from app.services.rag import search_kb, format_context
 from app.services.booking import handle_booking
 from app.services.escalation import handle_escalation
+from app.services.session_store import get_session, add_to_session
 
 _anthropic: Anthropic | None = None
 
@@ -73,26 +81,15 @@ def get_or_create_conversation(db, business_id: str, session_id: str, channel: s
     return new_conv.data[0]
 
 
-def get_conversation_history(db, conversation_id: str, limit: int = 10) -> list[dict]:
-    """Fetch recent messages for context window."""
-    result = (
-        db.table("messages")
-        .select("role, content, intent")
-        .eq("conversation_id", conversation_id)
-        .order("created_at", desc=True)
-        .limit(limit)
-        .execute()
-    )
-    # Reverse so oldest first
-    return list(reversed(result.data or []))
-
-
-def save_message(db, conversation_id: str, role: str, content: str, intent: str = None) -> dict:
-    """Save a message to Supabase."""
+def save_message_metadata(db, conversation_id: str, role: str, content: str, intent: str = None) -> dict:
+    """
+    Save non-PHI message metadata to Supabase.
+    Stores char_count and intent only — NEVER stores message content.
+    """
     row = {
         "conversation_id": conversation_id,
         "role": role,
-        "content": content,
+        "char_count": len(content),  # length only, never content
     }
     if intent:
         row["intent"] = intent
@@ -130,10 +127,13 @@ def chat(
         "conversation_id": str,
         "session_id": str,
     }
+
+    PHI (message content) is held in the in-memory session store only.
+    The database receives metadata (intent, char_count) but never message content.
     """
     db = get_supabase()
 
-    # 1. Get or create conversation
+    # 1. Get or create conversation (no PHI stored)
     conversation = get_or_create_conversation(db, business_id, session_id, channel)
     conversation_id = conversation["id"]
 
@@ -141,14 +141,15 @@ def chat(
     kb_entries = search_kb(patient_message, business_id, top_k=5)
     context = format_context(kb_entries)
 
-    # 3. Get conversation history
-    history = get_conversation_history(db, conversation_id, limit=10)
+    # 3. Load conversation history from in-memory session store (not DB)
+    history = get_session(session_id)
 
     # 4. Detect intent
     intent = detect_intent(patient_message)
 
-    # 5. Save patient message first
-    save_message(db, conversation_id, "user", patient_message, intent)
+    # 5. Store patient message in session (RAM only) — then save metadata to DB
+    add_to_session(session_id, "user", patient_message, business_id)
+    save_message_metadata(db, conversation_id, "user", patient_message, intent)
 
     # 6. Check for escalation BEFORE booking/RAG
     escalation = handle_escalation(
@@ -159,7 +160,8 @@ def chat(
         conversation_history=history,
     )
     if escalation:
-        save_message(db, conversation_id, "assistant", escalation["response"])
+        add_to_session(session_id, "assistant", escalation["response"], business_id)
+        save_message_metadata(db, conversation_id, "assistant", escalation["response"], "escalation")
         return {
             "response":        escalation["response"],
             "intent":          "escalation",
@@ -193,8 +195,8 @@ def chat(
 
     # 8. Route appointment intent to booking flow
     if in_booking_mode:
-        # Reload history including the message we just saved
-        full_history = get_conversation_history(db, conversation_id, limit=20)
+        # Use full in-memory history including the message we just added
+        full_history = get_session(session_id)
         booking_result = handle_booking(
             business_id=business_id,
             business_name=business_name,
@@ -202,7 +204,8 @@ def chat(
             conversation_history=full_history,
         )
         ai_response = booking_result["response"]
-        save_message(db, conversation_id, "assistant", ai_response)
+        add_to_session(session_id, "assistant", ai_response, business_id)
+        save_message_metadata(db, conversation_id, "assistant", ai_response, intent)
 
         return {
             "response": ai_response,
@@ -219,6 +222,7 @@ def chat(
         context=context,
     )
 
+    # Build messages list from in-memory session history
     messages = []
     for msg in history:
         messages.append({"role": msg["role"], "content": msg["content"]})
@@ -233,7 +237,8 @@ def chat(
     )
     ai_response = response.content[0].text.strip()
 
-    save_message(db, conversation_id, "assistant", ai_response)
+    add_to_session(session_id, "assistant", ai_response, business_id)
+    save_message_metadata(db, conversation_id, "assistant", ai_response, intent)
 
     return {
         "response": ai_response,

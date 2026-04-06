@@ -4,13 +4,18 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from app.core.config import settings
-from app.routers import auth, kb, chat, widget, appointments, escalations
+from app.routers import auth, kb, chat, widget, appointments, escalations, privacy
+from app.middleware.audit import AuditMiddleware
 # from app.routers import billing  # Sprint 8 — activate when Stripe is configured
 
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description="Ravira — AI Customer Support for Dental Offices",
+    description=(
+        "Ravira — AI Customer Support for Dental Offices\n\n"
+        "HIPAA Notice: This API processes but does not store PHI. "
+        "Message content is processed in-memory only and discarded after response."
+    ),
     docs_url="/docs",
     redoc_url="/redoc",
     debug=True,
@@ -32,15 +37,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuditMiddleware)
 
 # ── Routers ───────────────────────────────────────────────────
 # Sprint 1: Auth only
-app.include_router(auth.router,   prefix="/api/auth")
-app.include_router(kb.router,     prefix="/api/kb")
-app.include_router(chat.router,   prefix="/api/chat")
+app.include_router(auth.router,         prefix="/api/auth")
+app.include_router(kb.router,           prefix="/api/kb")
+app.include_router(chat.router,         prefix="/api/chat")
 app.include_router(widget.router,       prefix="")
-app.include_router(appointments.router,  prefix="/api/appointments")
-app.include_router(escalations.router,   prefix="/api/escalations")
+app.include_router(appointments.router, prefix="/api/appointments")
+app.include_router(escalations.router,  prefix="/api/escalations")
+app.include_router(privacy.router,      prefix="")
 # app.include_router(billing.router,     prefix="/api/billing")  # Sprint 8 — activate when Stripe is configured
 
 # Coming in later sprints — uncomment as you build them:

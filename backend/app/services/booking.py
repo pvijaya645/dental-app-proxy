@@ -1,10 +1,16 @@
 """
-Appointment Booking Service — Sprint 6
+Appointment Booking Service — HIPAA-compliant update.
 
 Uses Claude to extract booking details from the conversation,
 then saves the appointment to Supabase when all required fields are collected.
 
-Required fields: patient_name, patient_phone, service_type, appointment_date, appointment_time
+PHI handling: patient_name and patient_phone are collected from the patient
+during the chat session (held in RAM via session_store) to confirm the booking,
+but are NOT persisted to the database. Only service_type, date, time, and an
+anonymized patient_ref are saved. The dental office correlates the appointment
+to their own patient records using their internal system.
+
+Required fields for booking: service_type, appointment_date, appointment_time
 """
 
 import json
@@ -20,9 +26,6 @@ Look at the full conversation and extract any booking information the patient ha
 
 Return a JSON object with these fields (use null if not yet provided):
 {
-  "patient_name":       string | null,
-  "patient_phone":      string | null,
-  "patient_email":      string | null,
   "service_type":       string | null,
   "appointment_date":   string | null,   (format: YYYY-MM-DD if determinable, else natural language)
   "appointment_time":   string | null,   (format: HH:MM if determinable, else natural language)
@@ -40,7 +43,7 @@ The patient wants to book an appointment. Here is what we know so far:
 {collected}
 
 Ask for the NEXT missing required field in a friendly, natural way.
-Required fields in order: full name → phone number → service type → preferred date → preferred time.
+Required fields in order: service type → preferred date → preferred time.
 
 Only ask for ONE thing at a time. Be concise and friendly.
 """
@@ -82,7 +85,7 @@ def extract_booking_details(conversation_history: list[dict]) -> dict:
 
 def get_missing_fields(details: dict) -> list[str]:
     """Return list of required fields that are still missing."""
-    required = ["patient_name", "patient_phone", "service_type", "appointment_date", "appointment_time"]
+    required = ["service_type", "appointment_date", "appointment_time"]
     return [f for f in required if not details.get(f)]
 
 
@@ -92,9 +95,6 @@ def ask_for_next_field(business_name: str, details: dict) -> str:
 
     collected_lines = []
     labels = {
-        "patient_name": "Name",
-        "patient_phone": "Phone",
-        "patient_email": "Email",
         "service_type": "Service",
         "appointment_date": "Date",
         "appointment_time": "Time",
@@ -179,19 +179,22 @@ def normalize_date_time(details: dict) -> dict:
 
 
 def save_appointment(business_id: str, conversation_id: str, details: dict) -> dict:
-    """Save appointment to Supabase."""
+    """
+    Save appointment metadata to Supabase — NO PHI stored.
+    patient_name, patient_phone, and patient_email are NOT persisted.
+    The dental office uses patient_ref to look up the patient in their own system.
+    """
     db = get_supabase()
     result = db.table("appointments").insert({
         "business_id":      business_id,
         "conversation_id":  conversation_id,
-        "patient_name":     details["patient_name"],
-        "patient_phone":    details["patient_phone"],
-        "patient_email":    details.get("patient_email"),
         "service_type":     details["service_type"],
         "appointment_date": details["appointment_date"],
         "appointment_time": details["appointment_time"],
         "notes":            details.get("notes"),
         "status":           "pending",
+        # patient_ref is intentionally omitted here; the office sets it after
+        # they identify the patient in their own system
     }).execute()
 
     return result.data[0] if result.data else {}
@@ -236,14 +239,12 @@ def handle_booking(
     appointment = save_appointment(business_id, conversation_id, details)
 
     confirmation = (
-        f"Your appointment has been booked! 🎉\n\n"
-        f"📋 **Summary:**\n"
-        f"• Name: {details['patient_name']}\n"
-        f"• Service: {details['service_type']}\n"
-        f"• Date: {details['appointment_date']}\n"
-        f"• Time: {details['appointment_time']}\n"
-        f"• Phone: {details['patient_phone']}\n\n"
-        f"We'll call you to confirm. Is there anything else I can help you with?"
+        f"Your appointment has been booked!\n\n"
+        f"**Summary:**\n"
+        f"- Service: {details['service_type']}\n"
+        f"- Date: {details['appointment_date']}\n"
+        f"- Time: {details['appointment_time']}\n\n"
+        f"Our office will follow up to confirm. Is there anything else I can help you with?"
     )
 
     return {
