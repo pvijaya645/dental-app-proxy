@@ -1,104 +1,162 @@
 import { useEffect, useState } from "react";
+import { MessageSquare, CheckCircle, Clock, BookOpen, User, Copy, Check } from "lucide-react";
 import API from "../api/client";
 
-function StatCard({ label, value, icon, color }) {
+function StatCard({ label, value, icon: Icon, iconBg, iconColor }) {
   return (
-    <div style={{
-      background: "white", borderRadius: 12, padding: 24,
-      boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flex: 1,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 6 }}>{label}</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: "#1e293b" }}>{value}</div>
-        </div>
-        <div style={{
-          width: 52, height: 52, borderRadius: 12,
-          background: color, display: "flex", alignItems: "center",
-          justifyContent: "center", fontSize: 24,
-        }}>{icon}</div>
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
+      <div>
+        <div className="text-sm text-slate-600 mb-1">{label}</div>
+        <div className="text-3xl font-extrabold text-slate-900">{value}</div>
+      </div>
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
+        <Icon className={`w-5 h-5 ${iconColor}`} />
       </div>
     </div>
   );
 }
 
+const STATUS_BADGE = {
+  active:    "bg-green-100 text-green-700",
+  resolved:  "bg-slate-100 text-slate-600",
+  escalated: "bg-red-100 text-red-600",
+};
+
 export default function Overview() {
   const business = JSON.parse(localStorage.getItem("ravira_business") || "{}");
   const [conversations, setConversations] = useState([]);
   const [kb, setKb] = useState([]);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    API.get("/api/chat/conversations").then(r => setConversations(r.data)).catch(() => {});
-    API.get("/api/kb").then(r => setKb(r.data)).catch(() => {});
+    API.get("/api/chat/conversations").then((r) => setConversations(r.data)).catch(() => {});
+    API.get("/api/kb").then((r) => setKb(r.data)).catch(() => {});
   }, []);
 
-  const open = conversations.filter(c => c.status === "active").length;
-  const resolved = conversations.filter(c => c.status === "resolved").length;
+  const open = conversations.filter((c) => c.status === "active").length;
+  const resolved = conversations.filter((c) => c.status === "resolved").length;
+
+  const embedCode = `<script src="http://localhost:8000/widget.js"\n  data-key="${business.widget_api_key}"\n  data-name="${business.name}"\n  data-color="#2563eb">\n</script>`;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(embedCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
-    <div style={{ padding: 32 }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#1e293b" }}>
-          Welcome back 👋
-        </h1>
-        <p style={{ margin: "6px 0 0", color: "#64748b" }}>{business.name}</p>
+    <div>
+      {/* Page header */}
+      <div className="px-8 py-6 border-b border-slate-100 bg-white">
+        <h1 className="text-xl font-bold text-slate-900">Welcome back</h1>
+        <p className="text-sm text-slate-500 mt-0.5">{business.name}</p>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
-        <StatCard label="Total Conversations" value={conversations.length} icon="💬" color="#eff6ff" />
-        <StatCard label="Active Chats" value={open} icon="🟢" color="#f0fdf4" />
-        <StatCard label="Resolved" value={resolved} icon="✅" color="#f0fdf4" />
-        <StatCard label="KB Entries" value={kb.length} icon="📚" color="#faf5ff" />
-      </div>
-
-      {/* Recent conversations */}
-      <div style={{ background: "white", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-        <div style={{ padding: "20px 24px", borderBottom: "1px solid #f1f5f9" }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Recent Conversations</h2>
+      <div className="p-8 space-y-8">
+        {/* Stats grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard
+            label="Total Conversations"
+            value={conversations.length}
+            icon={MessageSquare}
+            iconBg="bg-blue-50"
+            iconColor="text-blue-600"
+          />
+          <StatCard
+            label="Active Chats"
+            value={open}
+            icon={Clock}
+            iconBg="bg-green-50"
+            iconColor="text-green-600"
+          />
+          <StatCard
+            label="Resolved"
+            value={resolved}
+            icon={CheckCircle}
+            iconBg="bg-green-50"
+            iconColor="text-green-600"
+          />
+          <StatCard
+            label="KB Entries"
+            value={kb.length}
+            icon={BookOpen}
+            iconBg="bg-purple-50"
+            iconColor="text-purple-600"
+          />
         </div>
-        {conversations.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#94a3b8" }}>
-            No conversations yet. Share your widget with patients to get started.
+
+        {/* Recent conversations */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h2 className="text-base font-bold text-slate-900">Recent Conversations</h2>
           </div>
-        ) : (
-          conversations.slice(0, 8).map(c => (
-            <div key={c.id} style={{
-              padding: "14px 24px", borderBottom: "1px solid #f8fafc",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: "50%", background: "#eff6ff",
-                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
-                }}>👤</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>
-                    {c.customer_name || "Anonymous Patient"}
-                  </div>
-                  <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                    {new Date(c.created_at).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-              <span style={{
-                padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
-                background: c.status === "active" ? "#dcfce7" : c.status === "escalated" ? "#fef2f2" : "#f1f5f9",
-                color: c.status === "active" ? "#16a34a" : c.status === "escalated" ? "#dc2626" : "#64748b",
-              }}>{c.status}</span>
-            </div>
-          ))
-        )}
-      </div>
 
-      {/* Widget embed snippet */}
-      <div style={{ background: "#1e293b", borderRadius: 12, padding: 24, marginTop: 24 }}>
-        <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 12 }}>
-          📋 Your embed code — paste this on your dental office website:
+          {conversations.length === 0 ? (
+            <div className="py-16 text-center text-slate-400 text-sm">
+              No conversations yet. Share your widget with patients to get started.
+            </div>
+          ) : (
+            <div>
+              {conversations.slice(0, 8).map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between px-6 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">
+                        {c.customer_name || "Anonymous Patient"}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {new Date(c.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${STATUS_BADGE[c.status] || STATUS_BADGE.resolved}`}
+                  >
+                    {c.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <code style={{ color: "#86efac", fontSize: 12, lineHeight: 1.8, display: "block" }}>
-          {`<script src="http://localhost:8000/widget.js"\n  data-key="${business.widget_api_key}"\n  data-name="${business.name}"\n  data-color="#2563eb">\n</script>`}
-        </code>
+
+        {/* Widget embed code */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Widget Embed Code</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Paste this snippet on your dental office website</p>
+            </div>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer border-0"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-green-600" />
+                  <span className="text-green-600">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  Copy
+                </>
+              )}
+            </button>
+          </div>
+          <div className="p-6">
+            <pre className="bg-slate-900 text-green-400 font-mono text-xs rounded-xl p-5 overflow-x-auto whitespace-pre-wrap break-all">
+              {embedCode}
+            </pre>
+          </div>
+        </div>
       </div>
     </div>
   );

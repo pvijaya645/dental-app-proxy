@@ -1,5 +1,10 @@
 """
-Appointments API — Sprint 6
+Appointments API — HIPAA-compliant update.
+
+PHI fields (patient_name, patient_phone, patient_email) have been removed.
+The dental office manages patient identity in their own system and supplies
+an opaque patient_ref (e.g. their internal patient ID) if they need to
+correlate the appointment back to a patient record.
 
 GET    /api/appointments         — list all appointments (dashboard)
 GET    /api/appointments/{id}    — get single appointment

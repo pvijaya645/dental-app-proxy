@@ -1,19 +1,22 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard, MessageSquare, Calendar, AlertTriangle,
+  BookOpen, Settings, LogOut, ChevronRight, Zap
+} from "lucide-react";
 
 const nav = [
-  { path: "/",              label: "Overview",      icon: "📊" },
-  { path: "/conversations", label: "Conversations", icon: "💬" },
-  { path: "/appointments",  label: "Appointments",  icon: "📅" },
-  { path: "/escalations",   label: "Escalations",   icon: "🚨" },
-  { path: "/knowledge",     label: "Knowledge Base",icon: "📚" },
-  // { path: "/billing",        label: "Billing",       icon: "💳" },  // Sprint 8 — activate when Stripe is configured
-  { path: "/settings",      label: "Settings",      icon: "⚙️"  },
+  { path: "/",              label: "Overview",       icon: LayoutDashboard },
+  { path: "/conversations", label: "Conversations",  icon: MessageSquare },
+  { path: "/appointments",  label: "Appointments",   icon: Calendar },
+  { path: "/escalations",   label: "Escalations",    icon: AlertTriangle },
+  { path: "/knowledge",     label: "Knowledge Base", icon: BookOpen },
+  { path: "/settings",      label: "Settings",       icon: Settings },
 ];
 
 export default function Layout({ children }) {
   const location = useLocation();
-  const navigate = useNavigate();
-  const business = JSON.parse(localStorage.getItem("ravira_business") || "{}");
+  const navigate  = useNavigate();
+  const business  = JSON.parse(localStorage.getItem("ravira_business") || "{}");
 
   function logout() {
     localStorage.removeItem("ravira_token");
@@ -21,54 +24,75 @@ export default function Layout({ children }) {
     navigate("/login");
   }
 
+  const initials = (business.name || "RA")
+    .split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "system-ui, sans-serif" }}>
+    <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar */}
-      <aside style={{
-        width: 240, background: "#1e40af", color: "white",
-        display: "flex", flexDirection: "column", padding: "24px 0",
-      }}>
+      <aside className="w-60 bg-white border-r border-slate-100 flex flex-col shadow-sm">
+
         {/* Logo */}
-        <div style={{ padding: "0 24px 32px" }}>
-          <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>🦷 Ravira</div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>AI Dental Receptionist</div>
+        <div className="px-5 py-5 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <Zap size={16} className="text-white" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900 tracking-tight">Ravira</div>
+              <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Dental AI</div>
+            </div>
+          </div>
         </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1 }}>
-          {nav.map((item) => {
-            const active = location.pathname === item.path;
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-0.5">
+          {nav.map(({ path, label, icon: Icon }) => {
+            const active = location.pathname === path;
             return (
-              <Link key={item.path} to={item.path} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "12px 24px", textDecoration: "none",
-                color: active ? "white" : "rgba(255,255,255,0.7)",
-                background: active ? "rgba(255,255,255,0.15)" : "transparent",
-                borderLeft: active ? "3px solid white" : "3px solid transparent",
-                fontWeight: active ? 600 : 400, fontSize: 14,
-                transition: "all 0.15s",
-              }}>
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
+              <Link
+                key={path}
+                to={path}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group no-underline ${
+                  active
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                }`}
+              >
+                <Icon
+                  size={16}
+                  className={active ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}
+                />
+                <span className="flex-1">{label}</span>
+                {active && <ChevronRight size={14} className="text-blue-400" />}
               </Link>
             );
           })}
         </nav>
 
-        {/* Business info + logout */}
-        <div style={{ padding: "16px 24px", borderTop: "1px solid rgba(255,255,255,0.15)" }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{business.name || "Your Office"}</div>
-          <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 12 }}>{business.email}</div>
-          <button onClick={logout} style={{
-            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-            color: "white", padding: "6px 14px", borderRadius: 6,
-            fontSize: 12, cursor: "pointer", width: "100%",
-          }}>Sign Out</button>
+        {/* User / Logout */}
+        <div className="px-3 py-4 border-t border-slate-100">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-slate-800 truncate">{business.name || "Your Office"}</div>
+              <div className="text-[10px] text-slate-400 truncate">{business.email}</div>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="mt-1 flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer border-0 bg-transparent"
+          >
+            <LogOut size={14} />
+            Sign Out
+          </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <main style={{ flex: 1, background: "#f8fafc", overflow: "auto" }}>
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
         {children}
       </main>
     </div>

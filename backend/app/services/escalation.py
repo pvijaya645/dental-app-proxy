@@ -51,7 +51,7 @@ def detect_escalation(message: str, conversation_history: list[dict]) -> dict | 
         if re.search(pattern, msg_lower):
             return {
                 "urgency": "high",
-                "reason": f"Patient reported possible emergency: '{message[:100]}'",
+                "reason": f"Trigger: emergency keyword matched (pattern: {pattern})",
             }
 
     # Check MEDIUM urgency
@@ -59,7 +59,7 @@ def detect_escalation(message: str, conversation_history: list[dict]) -> dict | 
         if re.search(pattern, msg_lower):
             return {
                 "urgency": "medium",
-                "reason": f"Patient requested human assistance: '{message[:100]}'",
+                "reason": f"Trigger: human-request keyword matched (pattern: {pattern})",
             }
 
     # Check LOW urgency
@@ -67,7 +67,7 @@ def detect_escalation(message: str, conversation_history: list[dict]) -> dict | 
         if re.search(pattern, msg_lower):
             return {
                 "urgency": "low",
-                "reason": f"Patient prefers human contact: '{message[:100]}'",
+                "reason": f"Trigger: contact-preference keyword matched (pattern: {pattern})",
             }
 
     # Check for repeated frustration in history (3+ messages without resolution)

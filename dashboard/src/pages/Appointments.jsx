@@ -1,18 +1,23 @@
 import { useEffect, useState } from "react";
+import { Calendar } from "lucide-react";
 import API from "../api/client";
 
-const STATUS_COLORS = {
-  pending:   { bg: "#fef9c3", color: "#854d0e" },
-  confirmed: { bg: "#dcfce7", color: "#166534" },
-  cancelled: { bg: "#fee2e2", color: "#991b1b" },
+const STATUS_BADGE = {
+  pending:   "bg-yellow-100 text-yellow-700",
+  confirmed: "bg-green-100 text-green-700",
+  cancelled: "bg-red-100 text-red-600",
 };
+
+const FILTERS = ["all", "pending", "confirmed", "cancelled"];
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => { fetchAppointments(); }, []);
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
 
   async function fetchAppointments() {
     setLoading(true);
@@ -26,126 +31,129 @@ export default function Appointments() {
     fetchAppointments();
   }
 
-  const filtered = filter === "all"
-    ? appointments
-    : appointments.filter(a => a.status === filter);
+  const filtered =
+    filter === "all" ? appointments : appointments.filter((a) => a.status === filter);
 
   return (
-    <div style={{ padding: 32 }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#1e293b" }}>Appointments</h1>
-        <p style={{ margin: "6px 0 0", color: "#64748b" }}>{appointments.length} total</p>
+    <div>
+      {/* Page header */}
+      <div className="px-8 py-6 border-b border-slate-100 bg-white">
+        <h1 className="text-xl font-bold text-slate-900">Appointments</h1>
+        <p className="text-sm text-slate-500 mt-0.5">{appointments.length} total</p>
       </div>
 
-      {/* Filter tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        {["all", "pending", "confirmed", "cancelled"].map(s => (
-          <button key={s} onClick={() => setFilter(s)} style={{
-            padding: "7px 16px", borderRadius: 20, border: "none",
-            fontSize: 13, fontWeight: 600, cursor: "pointer",
-            background: filter === s ? "#2563eb" : "#f1f5f9",
-            color: filter === s ? "white" : "#475569",
-            textTransform: "capitalize",
-          }}>{s}</button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>Loading…</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No appointments yet</div>
-          <div>Appointments booked via the chat widget will appear here</div>
-        </div>
-      ) : (
-        <div style={{ background: "white", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-          {/* Table header */}
-          <div style={{
-            display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1.2fr 1fr 1fr",
-            padding: "12px 20px", background: "#f8fafc",
-            borderBottom: "1px solid #e2e8f0", fontSize: 12,
-            fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5,
-          }}>
-            <div>Patient</div>
-            <div>Service</div>
-            <div>Date</div>
-            <div>Time</div>
-            <div>Status</div>
-            <div>Actions</div>
-          </div>
-
-          {filtered.map(appt => (
-            <div key={appt.id} style={{
-              display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1.2fr 1fr 1fr",
-              padding: "16px 20px", borderBottom: "1px solid #f8fafc",
-              alignItems: "center",
-            }}>
-              {/* Patient */}
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>{appt.patient_name}</div>
-                <div style={{ fontSize: 12, color: "#94a3b8" }}>{appt.patient_phone}</div>
-                {appt.patient_email && <div style={{ fontSize: 12, color: "#94a3b8" }}>{appt.patient_email}</div>}
-              </div>
-
-              {/* Service */}
-              <div style={{ fontSize: 14, color: "#475569" }}>{appt.service_type}</div>
-
-              {/* Date */}
-              <div style={{ fontSize: 14, color: "#475569" }}>
-                {new Date(appt.appointment_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-              </div>
-
-              {/* Time */}
-              <div style={{ fontSize: 14, color: "#475569" }}>
-                {appt.appointment_time?.slice(0, 5)}
-              </div>
-
-              {/* Status badge */}
-              <div>
-                <span style={{
-                  padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-                  background: STATUS_COLORS[appt.status]?.bg || "#f1f5f9",
-                  color: STATUS_COLORS[appt.status]?.color || "#475569",
-                  textTransform: "capitalize",
-                }}>{appt.status}</span>
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: "flex", gap: 6 }}>
-                {appt.status === "pending" && (
-                  <>
-                    <button onClick={() => updateStatus(appt.id, "confirmed")} style={{
-                      padding: "4px 10px", borderRadius: 6, border: "none",
-                      background: "#dcfce7", color: "#166534",
-                      fontSize: 12, fontWeight: 600, cursor: "pointer",
-                    }}>Confirm</button>
-                    <button onClick={() => updateStatus(appt.id, "cancelled")} style={{
-                      padding: "4px 10px", borderRadius: 6, border: "none",
-                      background: "#fee2e2", color: "#991b1b",
-                      fontSize: 12, fontWeight: 600, cursor: "pointer",
-                    }}>Cancel</button>
-                  </>
-                )}
-                {appt.status === "confirmed" && (
-                  <button onClick={() => updateStatus(appt.id, "cancelled")} style={{
-                    padding: "4px 10px", borderRadius: 6, border: "none",
-                    background: "#fee2e2", color: "#991b1b",
-                    fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  }}>Cancel</button>
-                )}
-                {appt.status === "cancelled" && (
-                  <button onClick={() => updateStatus(appt.id, "pending")} style={{
-                    padding: "4px 10px", borderRadius: 6, border: "none",
-                    background: "#f1f5f9", color: "#475569",
-                    fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  }}>Restore</button>
-                )}
-              </div>
-            </div>
+      <div className="p-8">
+        {/* Filter tabs */}
+        <div className="flex gap-2 mb-6">
+          {FILTERS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors cursor-pointer border-0 capitalize ${
+                filter === s
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {s}
+            </button>
           ))}
         </div>
-      )}
+
+        {loading ? (
+          <div className="text-center py-16 text-slate-400 text-sm">Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+              <Calendar className="w-6 h-6 text-slate-400" />
+            </div>
+            <div className="text-base font-semibold text-slate-500 mb-1">No appointments yet</div>
+            <div className="text-sm">Appointments booked via the chat widget will appear here</div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Patient</th>
+                  <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Service</th>
+                  <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Date</th>
+                  <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Time</th>
+                  <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Status</th>
+                  <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((appt) => (
+                  <tr key={appt.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-semibold text-slate-900">{appt.patient_name}</div>
+                      <div className="text-xs text-slate-400">{appt.patient_phone}</div>
+                      {appt.patient_email && (
+                        <div className="text-xs text-slate-400">{appt.patient_email}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{appt.service_type}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {new Date(appt.appointment_date + "T00:00:00").toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {appt.appointment_time?.slice(0, 5)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${STATUS_BADGE[appt.status] || "bg-slate-100 text-slate-600"}`}
+                      >
+                        {appt.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {appt.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => updateStatus(appt.id, "confirmed")}
+                              className="bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-0"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => updateStatus(appt.id, "cancelled")}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-0"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {appt.status === "confirmed" && (
+                          <button
+                            onClick={() => updateStatus(appt.id, "cancelled")}
+                            className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-0"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        {appt.status === "cancelled" && (
+                          <button
+                            onClick={() => updateStatus(appt.id, "pending")}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-0"
+                          >
+                            Restore
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
